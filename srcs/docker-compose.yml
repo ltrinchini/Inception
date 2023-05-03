@@ -1,0 +1,69 @@
+version: '3.8'
+
+services:
+  mariadb:
+    container_name: mariadb
+    build: ./requirements/mariadb
+    image: mariadb:ltrinchi
+    healthcheck:
+      test: ["CMD-SHELL", "ss -tul | grep mysql"]
+      interval: 5s
+      timeout: 1s
+      retries: 5
+      start_period: 5s
+    env_file:
+      - ./.env
+    volumes:
+      - mariadb_vol:/var/lib/mysql
+    networks:
+      - 42_ltrinchi_net
+    restart: always
+
+  wordpress:
+    container_name: wordpress
+    build: ./requirements/wordpress
+    depends_on:
+      mariadb:
+        condition: service_healthy
+    image: wordpress:ltrinchi
+    env_file:
+      - ./.env
+    volumes:
+      - wordpress_vol:/var/www
+    networks:
+      - 42_ltrinchi_net
+    restart: always
+
+  nginx:
+    container_name: nginx
+    build: ./requirements/nginx
+    depends_on:
+      - wordpress
+    image: nginx:ltrinchi
+    env_file:
+      - ./.env
+    ports:
+      - 443:443
+    volumes:
+      - wordpress_vol:/var/www
+    networks:
+      - 42_ltrinchi_net
+    restart: always
+
+volumes:
+  wordpress_vol:
+    driver: local
+    driver_opts:
+      device: /Users/ltrinchini/data/wordpress
+      o: bind
+      type: none
+
+  mariadb_vol:
+    driver: local
+    driver_opts:
+      device: /Users/ltrinchini/data/mariadb
+      o: bind
+      type: none
+
+networks:
+  42_ltrinchi_net:
